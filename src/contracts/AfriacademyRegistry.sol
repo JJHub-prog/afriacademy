@@ -24,8 +24,8 @@ contract AfriacademyRegistry is AccessControl, Pausable, ReentrancyGuard {
 
     struct Course {
         string name;
-        uint256 duration;        // in seconds
-        uint256 requiredScore;   // minimum score to pass (0-100)
+        uint256 duration; // in seconds
+        uint256 requiredScore; // minimum score to pass (0-100)
         bool isActive;
     }
 
@@ -40,8 +40,8 @@ contract AfriacademyRegistry is AccessControl, Pausable, ReentrancyGuard {
     mapping(address => Student) private students;
     mapping(uint256 => Course) private courses;
     mapping(address => mapping(uint256 => uint256)) private studentProgress; // student => courseId => progress (0-100)
-    mapping(address => mapping(uint256 => ExamResult)) private examResults;  // student => courseId => result
-    
+    mapping(address => mapping(uint256 => ExamResult)) private examResults; // student => courseId => result
+
     uint256 private courseCounter;
 
     // Events
@@ -82,12 +82,14 @@ contract AfriacademyRegistry is AccessControl, Pausable, ReentrancyGuard {
     function enrollInCourse(uint256 _courseId) external whenNotPaused nonReentrant {
         if (!students[msg.sender].isRegistered) revert StudentNotRegistered();
         if (!courses[_courseId].isActive) revert CourseNotActive();
-        
+
         uint256[] storage enrolledCourses = students[msg.sender].enrolledCourses;
         uint256 len = enrolledCourses.length;
         for (uint256 i; i < len;) {
             if (enrolledCourses[i] == _courseId) revert AlreadyEnrolled();
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         enrolledCourses.push(_courseId);
@@ -95,30 +97,25 @@ contract AfriacademyRegistry is AccessControl, Pausable, ReentrancyGuard {
     }
 
     // Course Management Functions
-    function createCourse(
-        string calldata _name,
-        uint256 _duration,
-        uint256 _requiredScore
-    ) external onlyRole(EDUCATOR_ROLE) whenNotPaused {
+    function createCourse(string calldata _name, uint256 _duration, uint256 _requiredScore)
+        external
+        onlyRole(EDUCATOR_ROLE)
+        whenNotPaused
+    {
         if (_requiredScore > 100) revert InvalidScore();
 
         uint256 courseId = ++courseCounter;
-        courses[courseId] = Course({
-            name: _name,
-            duration: _duration,
-            requiredScore: _requiredScore,
-            isActive: true
-        });
+        courses[courseId] = Course({name: _name, duration: _duration, requiredScore: _requiredScore, isActive: true});
 
         emit CourseCreated(courseId, _name, _duration);
     }
 
     // Progress Tracking Functions
-    function updateProgress(
-        address _student,
-        uint256 _courseId,
-        uint256 _progress
-    ) external onlyRole(EDUCATOR_ROLE) whenNotPaused {
+    function updateProgress(address _student, uint256 _courseId, uint256 _progress)
+        external
+        onlyRole(EDUCATOR_ROLE)
+        whenNotPaused
+    {
         if (!students[_student].isRegistered) revert StudentNotRegistered();
         if (!courses[_courseId].isActive) revert CourseNotActive();
         if (_progress > 100) revert InvalidScore();
@@ -131,7 +128,9 @@ contract AfriacademyRegistry is AccessControl, Pausable, ReentrancyGuard {
                 isEnrolled = true;
                 break;
             }
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
         if (!isEnrolled) revert NotEnrolled();
 
@@ -140,66 +139,50 @@ contract AfriacademyRegistry is AccessControl, Pausable, ReentrancyGuard {
     }
 
     // Exam Management Functions
-    function recordExamResult(
-        address _student,
-        uint256 _courseId,
-        uint256 _score
-    ) external onlyRole(EDUCATOR_ROLE) whenNotPaused {
+    function recordExamResult(address _student, uint256 _courseId, uint256 _score)
+        external
+        onlyRole(EDUCATOR_ROLE)
+        whenNotPaused
+    {
         if (!students[_student].isRegistered) revert StudentNotRegistered();
         if (!courses[_courseId].isActive) revert CourseNotActive();
         if (_score > 100) revert InvalidScore();
 
         bool passed = _score >= courses[_courseId].requiredScore;
-        examResults[_student][_courseId] = ExamResult({
-            courseId: _courseId,
-            score: _score,
-            timestamp: block.timestamp,
-            isPassed: passed
-        });
+        examResults[_student][_courseId] =
+            ExamResult({courseId: _courseId, score: _score, timestamp: block.timestamp, isPassed: passed});
 
         emit ExamResultRecorded(_student, _courseId, _score, passed);
     }
 
     // View Functions
-    function getStudent(address _student) external view returns (
-        string memory name,
-        bool isRegistered,
-        uint256 enrollmentDate,
-        uint256[] memory enrolledCourses
-    ) {
+    function getStudent(address _student)
+        external
+        view
+        returns (string memory name, bool isRegistered, uint256 enrollmentDate, uint256[] memory enrolledCourses)
+    {
         Student storage student = students[_student];
-        return (
-            student.name,
-            student.isRegistered,
-            student.enrollmentDate,
-            student.enrolledCourses
-        );
+        return (student.name, student.isRegistered, student.enrollmentDate, student.enrolledCourses);
     }
 
-    function getCourse(uint256 _courseId) external view returns (
-        string memory name,
-        uint256 duration,
-        uint256 requiredScore,
-        bool isActive
-    ) {
+    function getCourse(uint256 _courseId)
+        external
+        view
+        returns (string memory name, uint256 duration, uint256 requiredScore, bool isActive)
+    {
         Course storage course = courses[_courseId];
-        return (
-            course.name,
-            course.duration,
-            course.requiredScore,
-            course.isActive
-        );
+        return (course.name, course.duration, course.requiredScore, course.isActive);
     }
 
     function getProgress(address _student, uint256 _courseId) external view returns (uint256) {
         return studentProgress[_student][_courseId];
     }
 
-    function getExamResult(address _student, uint256 _courseId) external view returns (
-        uint256 score,
-        uint256 timestamp,
-        bool isPassed
-    ) {
+    function getExamResult(address _student, uint256 _courseId)
+        external
+        view
+        returns (uint256 score, uint256 timestamp, bool isPassed)
+    {
         ExamResult storage result = examResults[_student][_courseId];
         return (result.score, result.timestamp, result.isPassed);
     }
@@ -213,4 +196,3 @@ contract AfriacademyRegistry is AccessControl, Pausable, ReentrancyGuard {
         _unpause();
     }
 }
-
