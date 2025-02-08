@@ -48,13 +48,15 @@ $ anvil
 ### Deploy
 
 ```shell
-$ forge script script/Deploy.s.sol:DeployAfriacademy --rpc-url <your_rpc_url> --private-key <your_private_key>
+$ forge script script/Deploy.s.sol:DeployAfriacademy --rpc-url <your_rpc_url> 
 ```
 
 ### Cast
 
 ```shell
 $ cast <subcommand>
+
+Use Cast to hide and Save your private key
 ```
 
 ### Help
